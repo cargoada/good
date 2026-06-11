@@ -187,6 +187,44 @@ elif menu == "📋 題庫瀏覽與組卷":
                     st.write(f"**第 {idx+1} 題**")
                     st.markdown(str(sq['content']).replace('\n', '  \n'))
                     if pd.notna(sq.get('image_url')) and str(sq['image_url']).strip():
+                        # 底部：生成試卷預覽與下載
+        if selected_questions:
+            st.divider()
+            st.subheader("📝 試卷預覽與下載")
+            
+            # 1. 在背景將勾選的題目整理成一大串純文字
+            paper_content = "【專屬客製化試卷】\n"
+            paper_content += "=" * 40 + "\n\n"
+            
+            for idx, sq in enumerate(selected_questions):
+                paper_content += f"第 {idx+1} 題 [{sq['grade']} - {sq['unit']}]\n"
+                paper_content += f"{sq['content']}\n"
+                
+                # 若有圖片，將圖片網址附在文字檔中
+                if pd.notna(sq.get('image_url')) and str(sq['image_url']).strip():
+                    paper_content += f"[附圖連結請見網頁版: {sq['image_url']}]\n"
+                
+                paper_content += f"\n解答： {sq['answer']}\n"
+                paper_content += "-" * 40 + "\n\n"
+
+            # 2. 顯示網頁版預覽 (原有的功能)
+            with st.expander("👀 點此展開網頁版試卷預覽", expanded=True):
+                for idx, sq in enumerate(selected_questions):
+                    st.write(f"**第 {idx+1} 題**")
+                    st.markdown(str(sq['content']).replace('\n', '  \n'))
+                    if pd.notna(sq.get('image_url')) and str(sq['image_url']).strip():
+                        st.image(str(sq['image_url']), width=300)
+                    st.markdown(f"**解答： {sq['answer']}**")
+                    st.write("---")
+
+            # 3. 建立神奇的「下載按鈕」
+            st.download_button(
+                label="📥 下載這份試卷 (純文字檔 .txt)",
+                data=paper_content,          # 把剛才整理好的文字塞進來
+                file_name="客製化試卷.txt",  # 設定使用者下載下來的預設檔名
+                mime="text/plain",           # 告訴瀏覽器這是一個純文字檔
+                use_container_width=True
+            )
                         st.image(str(sq['image_url']), width=300)
                     st.markdown(f"**解答： {sq['answer']}**")
                     st.write("---")
