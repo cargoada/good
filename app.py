@@ -180,24 +180,48 @@ elif menu == "📋 題庫瀏覽與組卷":
                 if is_checked:
                     selected_questions.append(row)
 
-        # 底部：生成試卷預覽與下載
+                # 底部：生成試卷預覽與下載
         if selected_questions:
             st.divider()
             st.subheader("📝 試卷預覽與下載")
             
-            # 1. 在背景將勾選的題目整理成一大串純文字
-            paper_content = "【專屬客製化試卷】\n"
-            paper_content += "=" * 40 + "\n\n"
+            # 1. 在背景將勾選的題目整理成「HTML 網頁格式」，這樣才能顯示圖片
+            html_content = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <meta charset="utf-8">
+            <title>客製化試卷</title>
+            <style>
+                body { font-family: "Microsoft JhengHei", sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; }
+                .question-block { border-bottom: 2px dashed #ccc; padding-bottom: 20px; margin-bottom: 20px; }
+                img { max-width: 90%; height: auto; margin-top: 10px; border: 1px solid #eee; }
+                .answer { color: #D8000C; font-weight: bold; margin-top: 15px; }
+                .meta { color: #666; font-size: 0.9em; }
+            </style>
+            </head>
+            <body>
+            <h2>📝 客製化試卷</h2>
+            <hr>
+            """
             
             for idx, sq in enumerate(selected_questions):
-                paper_content += f"第 {idx+1} 題 [{sq['grade']} - {sq['unit']}]\n"
-                paper_content += f"{sq['content']}\n"
+                html_content += "<div class='question-block'>"
+                html_content += f"<h3>第 {idx+1} 題 <span class='meta'>[{sq['grade']} - {sq['unit']}]</span></h3>"
                 
+                # 處理文字換行
+                text_content = str(sq['content']).replace('\n', '<br>')
+                html_content += f"<p>{text_content}</p>"
+                
+                # 若有圖片，直接嵌入 HTML 的 <img> 標籤
                 if pd.notna(sq.get('image_url')) and str(sq['image_url']).strip():
-                    paper_content += f"[附圖連結請見網頁版: {sq['image_url']}]\n"
+                    html_content += f"<img src='{sq['image_url']}'><br>"
                 
-                paper_content += f"\n解答： {sq['answer']}\n"
-                paper_content += "-" * 40 + "\n\n"
+                # 解答區塊
+                html_content += f"<p class='answer'>解答： {sq['answer']}</p>"
+                html_content += "</div>"
+                
+            html_content += "</body></html>"
 
             # 2. 顯示網頁版預覽
             with st.expander("👀 點此展開網頁版試卷預覽", expanded=True):
@@ -205,15 +229,16 @@ elif menu == "📋 題庫瀏覽與組卷":
                     st.write(f"**第 {idx+1} 題**")
                     st.markdown(str(sq['content']).replace('\n', '  \n'))
                     if pd.notna(sq.get('image_url')) and str(sq['image_url']).strip():
-                        st.image(str(sq['image_url']), width=300)
+                        st.image(str(sq['image_url']), width=400)
                     st.markdown(f"**解答： {sq['answer']}**")
                     st.write("---")
 
-            # 3. 建立下載按鈕
+            # 3. 建立下載按鈕 (改為下載 .html 檔)
             st.download_button(
-                label="📥 下載這份試卷 (純文字檔 .txt)",
-                data=paper_content,
-                file_name="客製化試卷.txt",
-                mime="text/plain",
+                label="📥 下載圖文試卷 (網頁檔 .html)",
+                data=html_content,
+                file_name="客製化圖文試卷.html",
+                mime="text/html",
                 use_container_width=True
             )
+            
