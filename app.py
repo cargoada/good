@@ -6,10 +6,10 @@ import requests
 # ==========================================
 # 1. 系統與頁面設定
 # ==========================================
-st.set_page_config(page_title="雲端題庫系統", page_icon="📚", layout="wide")
+st.set_page_config(page_title="題庫大海", page_icon="📚", layout="wide")
 
 # 🚨 記得把這裡替換成您自己的 Google 試算表完整網址 🚨
-SHEET_URL = "https://docs.google.com/spreadsheets/d/12pjA5K2Di_w0cjzkWRUbPuE5VoqRgxkKcxGfTjho6h0/edit?gid=0#gid=0"
+SHEET_URL = "請在此貼上您的_Google_試算表完整網址"
 
 # ==========================================
 # 2. 功能函數：上傳圖片至 ImgBB
@@ -51,7 +51,7 @@ df = load_db()
 # ==========================================
 # 4. 側邊欄：功能導覽
 # ==========================================
-st.sidebar.title("📚 題庫管理選單")
+st.sidebar.title("📚 題庫大海")
 menu = st.sidebar.radio("請選擇功能", ["📥 新增題目", "📋 題庫瀏覽與組卷"])
 st.sidebar.divider()
 st.sidebar.caption("提示：在手機上可點擊左上角「>」展開選單")
@@ -117,7 +117,7 @@ if menu == "📥 新增題目":
                 st.success("✅ 題目已成功存入雲端資料庫！")
 
 # ==========================================
-# 功能二：題庫瀏覽、組卷與下載
+# 功能二：題庫瀏覽、組卷與下載 (包含刪除功能)
 # ==========================================
 elif menu == "📋 題庫瀏覽與組卷":
     st.title("📋 雲端題庫與組卷清單")
@@ -134,11 +134,9 @@ elif menu == "📋 題庫瀏覽與組卷":
         st.subheader("🔍 題目篩選")
         f_col1, f_col2 = st.columns(2)
         
-        # 取得資料庫中現有的年級與單元清單
         available_grades = df_clean["grade"].dropna().unique().tolist()
         f_grade = f_col1.multiselect("篩選年級", available_grades)
         
-        # 如果有選年級，單元清單就跟著連動
         if f_grade:
             df_filtered = df_clean[df_clean["grade"].isin(f_grade)]
         else:
@@ -147,14 +145,13 @@ elif menu == "📋 題庫瀏覽與組卷":
         available_units = df_filtered["unit"].dropna().unique().tolist()
         f_unit = f_col2.multiselect("篩選單元", available_units)
         
-        # 執行最終篩選
         if f_unit:
             df_filtered = df_filtered[df_filtered["unit"].isin(f_unit)]
             
         st.caption(f"共找到 **{len(df_filtered)}** 題符合條件的題目")
         st.divider()
 
-        # 顯示題目並提供勾選
+        # 顯示題目並提供勾選與刪除
         selected_questions = []
         
         for index, row in df_filtered.iterrows():
@@ -166,10 +163,19 @@ elif menu == "📋 題庫瀏覽與組卷":
                 if pd.notna(row.get('image_url')) and str(row['image_url']).strip():
                     st.image(str(row['image_url']), use_container_width=True)
                 
-                # 勾選框與解答並排顯示
-                c1, c2 = st.columns([1, 4])
+                # 勾選框、解答與刪除按鈕並排顯示
+                c1, c2, c3 = st.columns([2, 3, 2])
                 is_checked = c1.checkbox("✅ 加入試卷", key=f"chk_{row['id']}")
                 c2.success(f"🔑 解答：{row['answer']}")
+                
+                # 新增的刪除按鈕邏輯
+                if c3.button("🗑️ 刪除此題", key=f"del_{row['id']}"):
+                    with st.spinner("🗑️ 正在刪除資料..."):
+                        current_df = conn.read(spreadsheet=SHEET_URL, worksheet="Questions")
+                        updated_df = current_df[current_df['id'] != row['id']]
+                        conn.update(spreadsheet=SHEET_URL, worksheet="Questions", data=updated_df)
+                        st.cache_data.clear()
+                        st.rerun()
                 
                 if is_checked:
                     selected_questions.append(row)
@@ -187,7 +193,6 @@ elif menu == "📋 題庫瀏覽與組卷":
                 paper_content += f"第 {idx+1} 題 [{sq['grade']} - {sq['unit']}]\n"
                 paper_content += f"{sq['content']}\n"
                 
-                # 若有圖片，將圖片網址附在文字檔中
                 if pd.notna(sq.get('image_url')) and str(sq['image_url']).strip():
                     paper_content += f"[附圖連結請見網頁版: {sq['image_url']}]\n"
                 
