@@ -9,7 +9,7 @@ import requests
 st.set_page_config(page_title="雲端題庫系統", page_icon="📚", layout="wide")
 
 # 🚨 請將下方引號內的文字，替換成您的 Google 試算表完整網址 🚨
-SHEET_URL = "請在此貼上您的_Google_試算表完整網址"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/12pjA5K2Di_w0cjzkWRUbPuE5VoqRgxkKcxGfTjho6h0/edit?gid=0#gid=0"
 
 # ==========================================
 # 2. 功能函數：上傳圖片至 ImgBB
