@@ -8,8 +8,8 @@ import requests
 # ==========================================
 st.set_page_config(page_title="雲端題庫系統", page_icon="📚", layout="wide")
 
-# 🚨 請將下方引號內的文字，替換成您的 Google 試算表完整網址 🚨
-SHEET_URL = "https://docs.google.com/spreadsheets/d/12pjA5K2Di_w0cjzkWRUbPuE5VoqRgxkKcxGfTjho6h0/edit?gid=0#gid=0"
+# 🚨 記得把這裡替換成您自己的 Google 試算表完整網址 🚨
+SHEET_URL = "請在此貼上您的_Google_試算表完整網址"
 
 # ==========================================
 # 2. 功能函數：上傳圖片至 ImgBB
@@ -40,7 +40,6 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 @st.cache_data(ttl=10) # 設定快取時間，避免頻繁讀取消耗 API 額度
 def load_db():
     try:
-        # ✅ 加入了 spreadsheet 參數，確保程式找得到試算表
         df = conn.read(spreadsheet=SHEET_URL, worksheet="Questions")
         return df
     except Exception:
@@ -111,8 +110,6 @@ if menu == "📥 新增題目":
                 
                 # 將新資料加進舊資料表，並更新回 Google Sheets
                 updated_df = pd.concat([df, new_row], ignore_index=True)
-                
-                # ✅ 加入了 spreadsheet 參數執行更新
                 conn.update(spreadsheet=SHEET_URL, worksheet="Questions", data=updated_df)
                 
                 # 清除快取以抓取最新資料
@@ -120,7 +117,7 @@ if menu == "📥 新增題目":
                 st.success("✅ 題目已成功存入雲端資料庫！")
 
 # ==========================================
-# 功能二：題庫瀏覽與組卷
+# 功能二：題庫瀏覽、組卷與下載
 # ==========================================
 elif menu == "📋 題庫瀏覽與組卷":
     st.title("📋 雲端題庫與組卷清單")
@@ -161,10 +158,9 @@ elif menu == "📋 題庫瀏覽與組卷":
         selected_questions = []
         
         for index, row in df_filtered.iterrows():
-            # 使用 expander 讓畫面保持整潔
             with st.expander(f"📌 [ID: {int(row['id'])}] {row['grade']} - {row['unit']}", expanded=False):
                 # 題目文字
-                st.markdown(str(row['content']).replace('\n', '  \n')) # 確保換行正常顯示
+                st.markdown(str(row['content']).replace('\n', '  \n')) 
                 
                 # 若有圖片則顯示圖片
                 if pd.notna(row.get('image_url')) and str(row['image_url']).strip():
@@ -178,16 +174,7 @@ elif menu == "📋 題庫瀏覽與組卷":
                 if is_checked:
                     selected_questions.append(row)
 
-        # 底部：生成試卷預覽
-        if selected_questions:
-            st.divider()
-            st.subheader("📝 試卷預覽")
-            if st.button("列印 / 匯出已選題目 (教師版)"):
-                for idx, sq in enumerate(selected_questions):
-                    st.write(f"**第 {idx+1} 題**")
-                    st.markdown(str(sq['content']).replace('\n', '  \n'))
-                    if pd.notna(sq.get('image_url')) and str(sq['image_url']).strip():
-                        # 底部：生成試卷預覽與下載
+        # 底部：生成試卷預覽與下載
         if selected_questions:
             st.divider()
             st.subheader("📝 試卷預覽與下載")
@@ -207,7 +194,7 @@ elif menu == "📋 題庫瀏覽與組卷":
                 paper_content += f"\n解答： {sq['answer']}\n"
                 paper_content += "-" * 40 + "\n\n"
 
-            # 2. 顯示網頁版預覽 (原有的功能)
+            # 2. 顯示網頁版預覽
             with st.expander("👀 點此展開網頁版試卷預覽", expanded=True):
                 for idx, sq in enumerate(selected_questions):
                     st.write(f"**第 {idx+1} 題**")
@@ -217,14 +204,11 @@ elif menu == "📋 題庫瀏覽與組卷":
                     st.markdown(f"**解答： {sq['answer']}**")
                     st.write("---")
 
-            # 3. 建立神奇的「下載按鈕」
+            # 3. 建立下載按鈕
             st.download_button(
                 label="📥 下載這份試卷 (純文字檔 .txt)",
-                data=paper_content,          # 把剛才整理好的文字塞進來
-                file_name="客製化試卷.txt",  # 設定使用者下載下來的預設檔名
-                mime="text/plain",           # 告訴瀏覽器這是一個純文字檔
+                data=paper_content,
+                file_name="客製化試卷.txt",
+                mime="text/plain",
                 use_container_width=True
             )
-                        st.image(str(sq['image_url']), width=300)
-                    st.markdown(f"**解答： {sq['answer']}**")
-                    st.write("---")
